@@ -1,0 +1,347 @@
+{
+  "inheritanceProbabilities": {
+    "comment": "Global defaults - can be overridden per gene. Must sum to 1.0",
+    "singleParent": 0.25,
+    "blend": 0.60,
+    "mutate": 0.15
+  },
+
+  "genes": {
+    "layers": {
+      "type": "continuous",
+      "distribution": "skewNormal",
+      "inheritProbabilities": {
+        "singleParent": 0.30,
+        "blend": 0.55,
+        "mutate": 0.15
+      },
+      "initial": {
+        "mean": 6,
+        "stdDev": 2,
+        "skew": 0
+      },
+      "bounds": {
+        "min": 2,
+        "max": 15
+      },
+      "round": true
+    },
+
+    "petalMode": {
+      "type": "discrete",
+      "comment": "Categorical gene: fixed, fibonacci, or multiplier",
+      "inheritProbabilities": {
+        "singleParent": 0.50,
+        "blend": 0.30,
+        "mutate": 0.20
+      },
+      "options": [
+        {
+          "mode": "fixed",
+          "weight": 0.4,
+          "comment": "Same petal count across all layers"
+        },
+        {
+          "mode": "fibonacci",
+          "weight": 0.35,
+          "comment": "Fibonacci sequence starting from basePetals"
+        },
+        {
+          "mode": "multiplier",
+          "weight": 0.25,
+          "comment": "Multiply petal count per layer"
+        }
+      ]
+    },
+
+    "basePetals": {
+      "type": "continuous",
+      "distribution": "skewNormal",
+      "inheritProbabilities": {
+        "singleParent": 0.25,
+        "blend": 0.60,
+        "mutate": 0.15
+      },
+      "initial": {
+        "mean": 8,
+        "stdDev": 3,
+        "skew": 0.5
+      },
+      "bounds": {
+        "min": 3,
+        "max": 24
+      },
+      "round": true
+    },
+
+    "petalMultiplier": {
+      "type": "continuous",
+      "distribution": "skewNormal",
+      "comment": "Only used when petalMode is 'multiplier'",
+      "inheritProbabilities": {
+        "singleParent": 0.20,
+        "blend": 0.65,
+        "mutate": 0.15
+      },
+      "initial": {
+        "mean": 1.0,
+        "stdDev": 0.15,
+        "skew": 0
+      },
+      "bounds": {
+        "min": 0.5,
+        "max": 1.8
+      },
+      "round": false
+    },
+
+    "fibonacciStart": {
+      "type": "discrete",
+      "comment": "Starting index in fibonacci sequence (1,1,2,3,5,8,13,21...)",
+      "inheritProbabilities": {
+        "singleParent": 0.40,
+        "blend": 0.35,
+        "mutate": 0.25
+      },
+      "options": [
+        { "value": 0, "weight": 0.05, "label": "F(0)=1" },
+        { "value": 1, "weight": 0.10, "label": "F(1)=1" },
+        { "value": 2, "weight": 0.15, "label": "F(2)=2" },
+        { "value": 3, "weight": 0.25, "label": "F(3)=3" },
+        { "value": 4, "weight": 0.25, "label": "F(4)=5" },
+        { "value": 5, "weight": 0.15, "label": "F(5)=8" },
+        { "value": 6, "weight": 0.05, "label": "F(6)=13" }
+      ]
+    },
+
+    "outerRadius": {
+      "type": "continuous",
+      "distribution": "skewNormal",
+      "inheritProbabilities": {
+        "singleParent": 0.20,
+        "blend": 0.65,
+        "mutate": 0.15
+      },
+      "initial": {
+        "mean": 0.85,
+        "stdDev": 0.1,
+        "skew": -0.5
+      },
+      "bounds": {
+        "min": 0.4,
+        "max": 1.0
+      },
+      "round": false
+    },
+
+    "thickness": {
+      "type": "continuous",
+      "distribution": "skewNormal",
+      "inheritProbabilities": {
+        "singleParent": 0.20,
+        "blend": 0.65,
+        "mutate": 0.15
+      },
+      "initial": {
+        "mean": 0.4,
+        "stdDev": 0.12,
+        "skew": 0.3
+      },
+      "bounds": {
+        "min": 0.15,
+        "max": 0.8
+      },
+      "round": false
+    },
+
+    "midpoint": {
+      "type": "continuous",
+      "distribution": "skewNormal",
+      "inheritProbabilities": {
+        "singleParent": 0.20,
+        "blend": 0.65,
+        "mutate": 0.15
+      },
+      "initial": {
+        "mean": 0.5,
+        "stdDev": 0.12,
+        "skew": 0
+      },
+      "bounds": {
+        "min": 0.2,
+        "max": 0.8
+      },
+      "round": false
+    },
+
+    "curvature": {
+      "type": "continuous",
+      "distribution": "skewNormal",
+      "inheritProbabilities": {
+        "singleParent": 0.20,
+        "blend": 0.65,
+        "mutate": 0.15
+      },
+      "initial": {
+        "mean": 0.4,
+        "stdDev": 0.2,
+        "skew": 0
+      },
+      "bounds": {
+        "min": 0,
+        "max": 1.0
+      },
+      "round": false
+    },
+
+    "tangent": {
+      "type": "uniform",
+      "comment": "Tangent angle - uniform distribution more appropriate",
+      "inheritProbabilities": {
+        "singleParent": 0.30,
+        "blend": 0.45,
+        "mutate": 0.25
+      },
+      "initial": {
+        "min": 0,
+        "max": 80
+      },
+      "bounds": {
+        "min": 0,
+        "max": 90
+      },
+      "round": true
+    },
+
+    "scale": {
+      "type": "continuous",
+      "distribution": "skewNormal",
+      "inheritProbabilities": {
+        "singleParent": 0.25,
+        "blend": 0.60,
+        "mutate": 0.15
+      },
+      "initial": {
+        "mean": 0.82,
+        "stdDev": 0.08,
+        "skew": 0
+      },
+      "bounds": {
+        "min": 0.5,
+        "max": 0.95
+      },
+      "round": false
+    },
+
+    "rotation": {
+      "type": "uniform",
+      "comment": "Rotation offset between layers",
+      "inheritProbabilities": {
+        "singleParent": 0.30,
+        "blend": 0.45,
+        "mutate": 0.25
+      },
+      "initial": {
+        "min": 0,
+        "max": 60
+      },
+      "bounds": {
+        "min": 0,
+        "max": 90
+      },
+      "round": true
+    },
+
+    "jiggle": {
+      "type": "continuous",
+      "distribution": "skewNormal",
+      "inheritProbabilities": {
+        "singleParent": 0.25,
+        "blend": 0.55,
+        "mutate": 0.20
+      },
+      "initial": {
+        "mean": 0.05,
+        "stdDev": 0.05,
+        "skew": 1.0
+      },
+      "bounds": {
+        "min": 0,
+        "max": 0.3
+      },
+      "round": false
+    },
+
+    "colorOuter": {
+      "type": "color",
+      "colorSpace": "CIELAB",
+      "comment": "Outer layer color in CIELAB (L*, a*, b*)",
+      "inheritProbabilities": {
+        "singleParent": 0.30,
+        "blend": 0.55,
+        "mutate": 0.15
+      },
+      "components": {
+        "L": {
+          "initial": { "min": 25, "max": 55 },
+          "bounds": { "min": 0, "max": 100 },
+          "blendWeight": 0.5,
+          "mutationStdDev": 15
+        },
+        "a": {
+          "initial": { "min": -40, "max": 40 },
+          "bounds": { "min": -128, "max": 127 },
+          "blendWeight": 0.5,
+          "mutationStdDev": 25
+        },
+        "b": {
+          "initial": { "min": -40, "max": 40 },
+          "bounds": { "min": -128, "max": 127 },
+          "blendWeight": 0.5,
+          "mutationStdDev": 25
+        }
+      }
+    },
+
+    "colorInner": {
+      "type": "color",
+      "colorSpace": "CIELAB",
+      "comment": "Inner layer color in CIELAB",
+      "inheritProbabilities": {
+        "singleParent": 0.30,
+        "blend": 0.55,
+        "mutate": 0.15
+      },
+      "components": {
+        "L": {
+          "initial": { "min": 15, "max": 40 },
+          "bounds": { "min": 0, "max": 100 },
+          "blendWeight": 0.5,
+          "mutationStdDev": 12
+        },
+        "a": {
+          "initial": { "min": -30, "max": 30 },
+          "bounds": { "min": -128, "max": 127 },
+          "blendWeight": 0.5,
+          "mutationStdDev": 20
+        },
+        "b": {
+          "initial": { "min": -30, "max": 30 },
+          "bounds": { "min": -128, "max": 127 },
+          "blendWeight": 0.5,
+          "mutationStdDev": 20
+        }
+      }
+    }
+  },
+
+  "stdDevInheritance": {
+    "comment": "How standard deviation (hidden genotype) is passed down",
+    "blendRatio": 0.5,
+    "mutationFactor": 0.1,
+    "bounds": {
+      "minRatio": 0.5,
+      "maxRatio": 2.0
+    }
+  }
+}

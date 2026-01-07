@@ -1,0 +1,1390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Algorithmic Flora Generator</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --bg-deep: #0a0a0a;
+      --bg-panel: #111111;
+      --bg-elevated: #1a1a1a;
+      --border-subtle: rgba(255, 255, 255, 0.06);
+      --border-glow: rgba(255, 255, 255, 0.12);
+      --text-primary: #f5f5f0;
+      --text-secondary: rgba(255, 255, 255, 0.5);
+      --text-tertiary: rgba(255, 255, 255, 0.3);
+      --accent-warm: #d4a574;
+      --accent-cool: #7eb8a8;
+      --accent-rose: #c49b9b;
+    }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg-deep);
+      color: var(--text-primary);
+      min-height: 100vh;
+      overflow: hidden;
+    }
+
+    .widget-container {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: 
+        radial-gradient(ellipse at 30% 20%, rgba(212, 165, 116, 0.03) 0%, transparent 50%),
+        radial-gradient(ellipse at 70% 80%, rgba(126, 184, 168, 0.03) 0%, transparent 50%),
+        var(--bg-deep);
+    }
+
+    /* Main canvas area */
+    .flora-display {
+      position: relative;
+      display: flex;
+      gap: 40px;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .canvas-frame {
+      position: relative;
+      background: var(--bg-panel);
+      border: 1px solid var(--border-subtle);
+      border-radius: 24px;
+      padding: 20px;
+      box-shadow: 
+        0 0 0 1px rgba(255, 255, 255, 0.02),
+        0 20px 60px rgba(0, 0, 0, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.03);
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .canvas-frame:hover {
+      border-color: var(--border-glow);
+      box-shadow: 
+        0 0 0 1px rgba(255, 255, 255, 0.04),
+        0 25px 70px rgba(0, 0, 0, 0.5),
+        inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    }
+
+    .canvas-frame canvas {
+      display: block;
+      border-radius: 12px;
+    }
+
+    .canvas-label {
+      position: absolute;
+      bottom: -30px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 13px;
+      font-weight: 300;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--text-tertiary);
+    }
+
+    /* Floating action buttons */
+    .action-bar {
+      position: fixed;
+      bottom: 40px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 12px;
+      padding: 12px 16px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-subtle);
+      border-radius: 100px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    }
+
+    .action-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 44px;
+      height: 44px;
+      background: transparent;
+      border: 1px solid var(--border-subtle);
+      border-radius: 50%;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .action-btn:hover {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: var(--border-glow);
+      color: var(--text-primary);
+      transform: translateY(-2px);
+    }
+
+    .action-btn.active {
+      background: var(--accent-warm);
+      border-color: var(--accent-warm);
+      color: var(--bg-deep);
+    }
+
+    .action-btn svg {
+      width: 20px;
+      height: 20px;
+    }
+
+    .action-divider {
+      width: 1px;
+      background: var(--border-subtle);
+      margin: 4px 8px;
+    }
+
+    /* Side panel */
+    .panel {
+      position: fixed;
+      top: 0;
+      right: 0;
+      width: 360px;
+      height: 100vh;
+      background: var(--bg-panel);
+      border-left: 1px solid var(--border-subtle);
+      transform: translateX(100%);
+      transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      overflow-y: auto;
+      z-index: 100;
+    }
+
+    .panel.open {
+      transform: translateX(0);
+    }
+
+    .panel-header {
+      position: sticky;
+      top: 0;
+      padding: 28px 24px 20px;
+      background: var(--bg-panel);
+      border-bottom: 1px solid var(--border-subtle);
+      z-index: 10;
+    }
+
+    .panel-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 22px;
+      font-weight: 300;
+      letter-spacing: 0.02em;
+      margin-bottom: 4px;
+    }
+
+    .panel-subtitle {
+      font-size: 12px;
+      color: var(--text-tertiary);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    .panel-close {
+      position: absolute;
+      top: 24px;
+      right: 20px;
+      width: 32px;
+      height: 32px;
+      background: transparent;
+      border: none;
+      color: var(--text-secondary);
+      cursor: pointer;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+    }
+
+    .panel-close:hover {
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text-primary);
+    }
+
+    .panel-content {
+      padding: 20px 24px 100px;
+    }
+
+    /* Parameter sections */
+    .param-section {
+      margin-bottom: 32px;
+    }
+
+    .param-section-title {
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--text-tertiary);
+      margin-bottom: 16px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .param-group {
+      margin-bottom: 20px;
+    }
+
+    .param-label {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .param-name {
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    .param-value {
+      font-size: 12px;
+      font-family: 'DM Sans', monospace;
+      color: var(--accent-warm);
+      background: rgba(212, 165, 116, 0.1);
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      height: 4px;
+      background: var(--bg-elevated);
+      border-radius: 2px;
+      appearance: none;
+      cursor: pointer;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      appearance: none;
+      width: 16px;
+      height: 16px;
+      background: var(--text-primary);
+      border-radius: 50%;
+      cursor: pointer;
+      transition: transform 0.2s ease;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    }
+
+    input[type="range"]::-webkit-slider-thumb:hover {
+      transform: scale(1.2);
+    }
+
+    /* Color pickers */
+    .color-picker-row {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .color-input-wrapper {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 12px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+    }
+
+    .color-input-wrapper input[type="color"] {
+      width: 24px;
+      height: 24px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      background: transparent;
+      padding: 0;
+    }
+
+    .color-input-wrapper input[type="color"]::-webkit-color-swatch-wrapper {
+      padding: 0;
+    }
+
+    .color-input-wrapper input[type="color"]::-webkit-color-swatch {
+      border: none;
+      border-radius: 4px;
+    }
+
+    .color-label {
+      font-size: 11px;
+      color: var(--text-tertiary);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+
+    /* DNA String */
+    .dna-section {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      padding: 16px;
+      margin-top: 24px;
+    }
+
+    .dna-title {
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-tertiary);
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .dna-title svg {
+      width: 14px;
+      height: 14px;
+      color: var(--accent-cool);
+    }
+
+    .dna-input {
+      width: 100%;
+      background: var(--bg-deep);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      padding: 12px;
+      font-family: 'DM Sans', monospace;
+      font-size: 11px;
+      color: var(--text-secondary);
+      resize: none;
+      height: 72px;
+      line-height: 1.6;
+    }
+
+    .dna-input:focus {
+      outline: none;
+      border-color: var(--accent-cool);
+    }
+
+    .dna-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .dna-btn {
+      flex: 1;
+      padding: 10px 16px;
+      background: transparent;
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      color: var(--text-secondary);
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .dna-btn:hover {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: var(--border-glow);
+      color: var(--text-primary);
+    }
+
+    /* Mode indicator */
+    .mode-indicator {
+      position: fixed;
+      top: 32px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 4px;
+      padding: 6px 8px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-subtle);
+      border-radius: 100px;
+    }
+
+    .mode-btn {
+      padding: 8px 20px;
+      background: transparent;
+      border: none;
+      border-radius: 100px;
+      font-size: 12px;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .mode-btn.active {
+      background: var(--text-primary);
+      color: var(--bg-deep);
+    }
+
+    /* Crossbreed view */
+    .crossbreed-connector {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      padding: 0 20px;
+    }
+
+    .connector-line {
+      width: 2px;
+      height: 30px;
+      background: linear-gradient(to bottom, var(--accent-warm), var(--accent-cool));
+      border-radius: 1px;
+    }
+
+    .connector-icon {
+      width: 40px;
+      height: 40px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-glow);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-secondary);
+    }
+
+    .connector-icon svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    /* Offspring indicator */
+    .offspring-badge {
+      position: absolute;
+      top: -12px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 4px 12px;
+      background: linear-gradient(135deg, var(--accent-warm), var(--accent-rose));
+      border-radius: 100px;
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--bg-deep);
+      white-space: nowrap;
+    }
+
+    /* Checkbox toggle */
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 0;
+    }
+
+    .toggle-label {
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    .toggle-switch {
+      position: relative;
+      width: 44px;
+      height: 24px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .toggle-switch.active {
+      background: var(--accent-cool);
+      border-color: var(--accent-cool);
+    }
+
+    .toggle-switch::after {
+      content: '';
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      width: 16px;
+      height: 16px;
+      background: var(--text-primary);
+      border-radius: 50%;
+      transition: transform 0.2s ease;
+    }
+
+    .toggle-switch.active::after {
+      transform: translateX(20px);
+    }
+
+    /* Hidden states */
+    .hidden {
+      display: none !important;
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--border-subtle);
+      border-radius: 3px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--border-glow);
+    }
+
+    /* Toast notification */
+    .toast {
+      position: fixed;
+      bottom: 100px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      padding: 12px 24px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-glow);
+      border-radius: 100px;
+      font-size: 13px;
+      color: var(--text-primary);
+      opacity: 0;
+      transition: all 0.3s ease;
+      pointer-events: none;
+      z-index: 1000;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+  </style>
+</head>
+<body>
+  <div class="widget-container">
+    <!-- Mode switcher -->
+    <div class="mode-indicator">
+      <button class="mode-btn active" data-mode="single">Single</button>
+      <button class="mode-btn" data-mode="crossbreed">Crossbreed</button>
+    </div>
+
+    <!-- Main display -->
+    <div class="flora-display" id="floraDisplay">
+      <!-- Single mode: one canvas -->
+      <div class="canvas-frame" id="singleFrame">
+        <canvas id="singleCanvas" width="400" height="400"></canvas>
+        <span class="canvas-label">Specimen</span>
+      </div>
+
+      <!-- Crossbreed mode: three canvases -->
+      <div class="canvas-frame hidden" id="parentAFrame">
+        <canvas id="parentACanvas" width="280" height="280"></canvas>
+        <span class="canvas-label">Parent A</span>
+      </div>
+
+      <div class="crossbreed-connector hidden" id="connector">
+        <div class="connector-line"></div>
+        <div class="connector-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 5v14M5 12h14"/>
+          </svg>
+        </div>
+        <div class="connector-line"></div>
+      </div>
+
+      <div class="canvas-frame hidden" id="parentBFrame">
+        <canvas id="parentBCanvas" width="280" height="280"></canvas>
+        <span class="canvas-label">Parent B</span>
+      </div>
+
+      <div class="canvas-frame hidden" id="offspringFrame">
+        <canvas id="offspringCanvas" width="320" height="320"></canvas>
+        <span class="canvas-label">Offspring</span>
+        <div class="offspring-badge">New Generation</div>
+      </div>
+    </div>
+
+    <!-- Action bar -->
+    <div class="action-bar">
+      <button class="action-btn" id="randomizeBtn" title="Randomize">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/>
+        </svg>
+      </button>
+      <button class="action-btn" id="randomizeABtn" title="Randomize A" style="display: none;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <text x="12" y="16" text-anchor="middle" font-size="10" fill="currentColor" stroke="none">A</text>
+        </svg>
+      </button>
+      <button class="action-btn" id="randomizeBBtn" title="Randomize B" style="display: none;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <text x="12" y="16" text-anchor="middle" font-size="10" fill="currentColor" stroke="none">B</text>
+        </svg>
+      </button>
+      <button class="action-btn" id="breedBtn" title="Breed" style="display: none;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M12 2v4m0 12v4M2 12h4m12 0h4"/>
+        </svg>
+      </button>
+      <div class="action-divider"></div>
+      <button class="action-btn" id="settingsBtn" title="Parameters">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Settings panel -->
+    <div class="panel" id="settingsPanel">
+      <div class="panel-header">
+        <div class="panel-title">Parameters</div>
+        <div class="panel-subtitle">Flora Generation</div>
+        <button class="panel-close" id="closePanel">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 6L6 18M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="panel-content">
+        <!-- Structure -->
+        <div class="param-section">
+          <div class="param-section-title">Structure</div>
+          
+          <div class="param-group">
+            <div class="param-label">
+              <span class="param-name">Layers</span>
+              <span class="param-value" id="layersValue">6</span>
+            </div>
+            <input type="range" id="layers" min="2" max="12" value="6" step="1">
+          </div>
+
+          <div class="param-group">
+            <div class="param-label">
+              <span class="param-name">Petals per Layer</span>
+              <span class="param-value" id="petalsValue">8</span>
+            </div>
+            <input type="range" id="petals" min="3" max="24" value="8" step="1">
+          </div>
+
+          <div class="param-group">
+            <div class="param-label">
+              <span class="param-name">Petal Multiplier</span>
+              <span class="param-value" id="petalMultValue">1.0</span>
+            </div>
+            <input type="range" id="petalMult" min="0.5" max="2" value="1" step="0.1">
+          </div>
+        </div>
+
+        <!-- Shape -->
+        <div class="param-section">
+          <div class="param-section-title">Petal Shape</div>
+
+          <div class="param-group">
+            <div class="param-label">
+              <span class="param-name">Outer Radius</span>
+              <span class="param-value" id="outerRadiusValue">0.85</span>
+            </div>
+            <input type="range" id="outerRadius" min="0.4" max="1" value="0.85" step="0.01">
+          </div>
+
+          <div class="param-group">
+            <div class="param-label">
+              <span class="param-name">Petal Thickness</span>
+              <span class="param-value" id="thicknessValue">0.40</span>
+            </div>
+            <input type="range" id="thickness" min="0.15" max="0.8" value="0.4" step="0.01">
+          </div>
+
+          <div class="param-group">
+            <div class="param-label">
+              <span class="param-name">Midpoint Position</span>
+              <span class="param-value" id="midpointValue">0.5</span>
+            </div>
+            <input type="range" id="midpoint" min="0.2" max="0.8" value="0.5" step="0.01">
+          </div>
+
+          <div class="param-group">
+            <div class="param-label">
+              <span class="param-name">Curvature</span>
+              <span class="param-value" id="curvatureValue">0.4</span>
+            </div>
+            <input type="range" id="curvature" min="0" max="1" value="0.4" step="0.01">
+          </div>
+
+          <div class="param-group">
+            <div class="param-label">
+              <span class="param-name">Tangent Angle</span>
+              <span class="param-value" id="tangentValue">45°</span>
+            </div>
+            <input type="range" id="tangent" min="0" max="90" value="45" step="1">
+          </div>
+        </div>
+
+        <!-- Scaling -->
+        <div class="param-section">
+          <div class="param-section-title">Layer Progression</div>
+
+          <div class="param-group">
+            <div class="param-label">
+              <span class="param-name">Scale Factor</span>
+              <span class="param-value" id="scaleValue">0.82</span>
+            </div>
+            <input type="range" id="scale" min="0.5" max="0.95" value="0.82" step="0.01">
+          </div>
+
+          <div class="param-group">
+            <div class="param-label">
+              <span class="param-name">Rotation Offset</span>
+              <span class="param-value" id="rotationValue">22°</span>
+            </div>
+            <input type="range" id="rotation" min="0" max="60" value="22" step="1">
+          </div>
+        </div>
+
+        <!-- Organic Variation -->
+        <div class="param-section">
+          <div class="param-section-title">Organic Variation</div>
+
+          <div class="param-group">
+            <div class="param-label">
+              <span class="param-name">Parameter Jiggle</span>
+              <span class="param-value" id="jiggleValue">0</span>
+            </div>
+            <input type="range" id="jiggle" min="0" max="0.3" value="0" step="0.01">
+          </div>
+        </div>
+
+        <!-- Colors -->
+        <div class="param-section">
+          <div class="param-section-title">Color Gradient</div>
+          
+          <div class="color-picker-row">
+            <div class="color-input-wrapper">
+              <input type="color" id="colorStart" value="#4a7c59">
+              <span class="color-label">Outer</span>
+            </div>
+            <div class="color-input-wrapper">
+              <input type="color" id="colorEnd" value="#2d4a3e">
+              <span class="color-label">Inner</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- DNA String -->
+        <div class="dna-section">
+          <div class="dna-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M2 15c6.667-6 13.333 0 20-6M2 9c6.667 6 13.333 0 20 6"/>
+            </svg>
+            Genetic Code
+          </div>
+          <textarea class="dna-input" id="dnaString" placeholder="Paste genetic code here..."></textarea>
+          <div class="dna-actions">
+            <button class="dna-btn" id="copyDna">Copy</button>
+            <button class="dna-btn" id="loadDna">Load</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast notification -->
+    <div class="toast" id="toast">Copied to clipboard</div>
+  </div>
+
+  <script>
+    // ==========================================
+    // FLORA GENERATOR - Core Types & State
+    // ==========================================
+
+    const FloraParams = {
+      // Structure
+      layers: 6,
+      petals: 8,
+      petalMult: 1.0,
+      
+      // Petal shape
+      outerRadius: 0.85,
+      thickness: 0.4,
+      midpoint: 0.5,
+      curvature: 0.4,
+      tangent: 45,
+      
+      // Layer progression
+      scale: 0.82,
+      rotation: 22,
+      
+      // Organic variation
+      jiggle: 0,
+      
+      // Colors
+      colorStart: '#4a7c59',
+      colorEnd: '#2d4a3e',
+      
+      // Random seed for reproducibility
+      seed: Math.random() * 10000
+    };
+
+    // State
+    let currentMode = 'single';
+    let singleParams = { ...FloraParams };
+    let parentAParams = { ...FloraParams };
+    let parentBParams = { ...FloraParams };
+    let offspringParams = { ...FloraParams };
+    let activeParams = singleParams;
+    let panelOpen = false;
+
+    // ==========================================
+    // Seeded Random Number Generator
+    // ==========================================
+
+    function mulberry32(a) {
+      return function() {
+        let t = a += 0x6D2B79F5;
+        t = Math.imul(t ^ t >>> 15, t | 1);
+        t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+        return ((t ^ t >>> 14) >>> 0) / 4294967296;
+      }
+    }
+
+    // ==========================================
+    // DNA Encoding/Decoding
+    // ==========================================
+
+    function encodeParams(params) {
+      const values = [
+        params.layers,
+        params.petals,
+        params.petalMult,
+        params.outerRadius,
+        params.thickness,
+        params.midpoint,
+        params.curvature,
+        params.tangent,
+        params.scale,
+        params.rotation,
+        params.jiggle,
+        params.colorStart,
+        params.colorEnd,
+        Math.floor(params.seed)
+      ];
+      return btoa(JSON.stringify(values));
+    }
+
+    function decodeParams(str) {
+      try {
+        const values = JSON.parse(atob(str));
+        return {
+          layers: values[0],
+          petals: values[1],
+          petalMult: values[2],
+          outerRadius: values[3],
+          thickness: values[4],
+          midpoint: values[5],
+          curvature: values[6],
+          tangent: values[7],
+          scale: values[8],
+          rotation: values[9],
+          jiggle: values[10],
+          colorStart: values[11],
+          colorEnd: values[12],
+          seed: values[13]
+        };
+      } catch (e) {
+        console.error('Failed to decode params:', e);
+        return null;
+      }
+    }
+
+    // ==========================================
+    // Color Utilities
+    // ==========================================
+
+    function hexToRgb(hex) {
+      const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+      return result ? {
+        r: parseInt(result[1], 16),
+        g: parseInt(result[2], 16),
+        b: parseInt(result[3], 16)
+      } : null;
+    }
+
+    function rgbToHex(r, g, b) {
+      return '#' + [r, g, b].map(x => {
+        const hex = Math.round(x).toString(16);
+        return hex.length === 1 ? '0' + hex : hex;
+      }).join('');
+    }
+
+    function lerpColor(color1, color2, t) {
+      const c1 = hexToRgb(color1);
+      const c2 = hexToRgb(color2);
+      return rgbToHex(
+        c1.r + (c2.r - c1.r) * t,
+        c1.g + (c2.g - c1.g) * t,
+        c1.b + (c2.b - c1.b) * t
+      );
+    }
+
+    // ==========================================
+    // Flora Drawing
+    // ==========================================
+
+    function drawPetal(ctx, centerX, centerY, baseRadius, params, rng) {
+      const outerR = baseRadius * params.outerRadius;
+      // Petals root at center - no inner radius offset
+      
+      // Thickness controls the width of the petal at its widest point
+      const petalWidth = baseRadius * params.thickness;
+      
+      // Midpoint determines where along the petal length it's widest
+      const midR = outerR * params.midpoint;
+      
+      // Tangent angle affects the curve shape
+      const tangentRad = (params.tangent * Math.PI) / 180;
+      
+      // Curvature affects how rounded vs pointed the petal is
+      const curveInfluence = params.curvature;
+      
+      // Apply jiggle
+      const jiggleFactor = params.jiggle;
+      const jiggleOuter = 1 + (rng() - 0.5) * jiggleFactor;
+      const jiggleMid = 1 + (rng() - 0.5) * jiggleFactor;
+      const jiggleWidth = 1 + (rng() - 0.5) * jiggleFactor;
+
+      ctx.beginPath();
+      
+      // Start at center (root point)
+      ctx.moveTo(centerX, centerY);
+      
+      // Calculate control point positions based on thickness and tangent
+      const widthAtMid = petalWidth * jiggleWidth;
+      const ctrlOffsetX = widthAtMid * (0.5 + curveInfluence * 0.5);
+      const ctrlOffsetY = midR * jiggleMid;
+      
+      // Add tangent influence to control points
+      const tangentOffsetX = Math.sin(tangentRad) * widthAtMid * 0.3;
+      
+      // Right curve to outer tip
+      const rightCtrlX = centerX + ctrlOffsetX + tangentOffsetX;
+      const rightCtrlY = centerY - ctrlOffsetY;
+      
+      ctx.quadraticCurveTo(
+        rightCtrlX,
+        rightCtrlY,
+        centerX,
+        centerY - outerR * jiggleOuter
+      );
+      
+      // Left curve back to center (mirrored)
+      const leftCtrlX = centerX - ctrlOffsetX - tangentOffsetX;
+      const leftCtrlY = centerY - ctrlOffsetY;
+      
+      ctx.quadraticCurveTo(
+        leftCtrlX,
+        leftCtrlY,
+        centerX,
+        centerY
+      );
+      
+      ctx.closePath();
+    }
+
+    function drawFlora(canvas, params) {
+      const ctx = canvas.getContext('2d');
+      const width = canvas.width;
+      const height = canvas.height;
+      const centerX = width / 2;
+      const centerY = height / 2;
+      
+      // Clear canvas
+      ctx.fillStyle = '#0a0a0a';
+      ctx.fillRect(0, 0, width, height);
+      
+      // Initialize seeded RNG
+      const rng = mulberry32(params.seed);
+      
+      // Base radius
+      const baseRadius = Math.min(width, height) * 0.42;
+      
+      // Draw layers from back (largest) to front (smallest)
+      for (let layer = 0; layer < params.layers; layer++) {
+        // Calculate layer-specific values
+        const layerScale = Math.pow(params.scale, layer);
+        const layerRadius = baseRadius * layerScale;
+        const layerRotation = (params.rotation * layer * Math.PI) / 180;
+        
+        // Calculate petal count for this layer
+        let petalCount = Math.round(params.petals * Math.pow(params.petalMult, layer));
+        petalCount = Math.max(3, Math.min(petalCount, 36));
+        
+        // Color gradient
+        const colorT = layer / Math.max(1, params.layers - 1);
+        const layerColor = lerpColor(params.colorStart, params.colorEnd, colorT);
+        
+        // Draw petals - all rooted at center
+        for (let petal = 0; petal < petalCount; petal++) {
+          const angle = (petal * 2 * Math.PI) / petalCount + layerRotation;
+          
+          ctx.save();
+          ctx.translate(centerX, centerY);
+          ctx.rotate(angle);
+          ctx.translate(-centerX, -centerY);
+          
+          drawPetal(ctx, centerX, centerY, layerRadius, params, rng);
+          
+          ctx.fillStyle = layerColor;
+          ctx.fill();
+          
+          // Subtle stroke for definition
+          ctx.strokeStyle = lerpColor(layerColor, '#000000', 0.3);
+          ctx.lineWidth = 0.5;
+          ctx.stroke();
+          
+          ctx.restore();
+        }
+      }
+      // No center circle - petals go all the way to center
+    }
+
+    // ==========================================
+    // Crossbreeding
+    // ==========================================
+
+    function crossbreed(parentA, parentB) {
+      const rng = Math.random;
+      const offspring = {};
+      
+      const numericKeys = [
+        'layers', 'petals', 'petalMult', 'outerRadius', 'thickness',
+        'midpoint', 'curvature', 'tangent', 'scale', 'rotation', 'jiggle'
+      ];
+      
+      // Numeric values: weighted average with some randomness
+      for (const key of numericKeys) {
+        const weight = 0.3 + rng() * 0.4; // 0.3 to 0.7
+        offspring[key] = parentA[key] * weight + parentB[key] * (1 - weight);
+        
+        // Round integers
+        if (key === 'layers' || key === 'petals' || key === 'tangent' || key === 'rotation') {
+          offspring[key] = Math.round(offspring[key]);
+        }
+      }
+      
+      // Colors: blend or inherit
+      if (rng() > 0.3) {
+        // Blend colors
+        offspring.colorStart = lerpColor(parentA.colorStart, parentB.colorStart, 0.3 + rng() * 0.4);
+        offspring.colorEnd = lerpColor(parentA.colorEnd, parentB.colorEnd, 0.3 + rng() * 0.4);
+      } else {
+        // Inherit from one parent
+        const colorParent = rng() > 0.5 ? parentA : parentB;
+        offspring.colorStart = colorParent.colorStart;
+        offspring.colorEnd = colorParent.colorEnd;
+      }
+      
+      // New seed
+      offspring.seed = Math.random() * 10000;
+      
+      return offspring;
+    }
+
+    // ==========================================
+    // Randomization
+    // ==========================================
+
+    function randomizeParams() {
+      const rng = Math.random;
+      
+      // Generate harmonious colors
+      const hue = rng() * 360;
+      const satStart = 30 + rng() * 40;
+      const satEnd = 20 + rng() * 30;
+      const lightStart = 30 + rng() * 25;
+      const lightEnd = 15 + rng() * 20;
+      
+      const colorStart = hslToHex(hue, satStart, lightStart);
+      const colorEnd = hslToHex((hue + (rng() - 0.5) * 30) % 360, satEnd, lightEnd);
+      
+      return {
+        layers: 3 + Math.floor(rng() * 10),
+        petals: 4 + Math.floor(rng() * 18),
+        petalMult: 0.6 + rng() * 0.9,
+        outerRadius: 0.5 + rng() * 0.5,
+        thickness: 0.2 + rng() * 0.5,
+        midpoint: 0.25 + rng() * 0.5,
+        curvature: rng() * 0.8,
+        tangent: Math.floor(rng() * 80),
+        scale: 0.6 + rng() * 0.3,
+        rotation: Math.floor(rng() * 50),
+        jiggle: rng() * 0.15,
+        colorStart,
+        colorEnd,
+        seed: rng() * 10000
+      };
+    }
+
+    function hslToHex(h, s, l) {
+      s /= 100;
+      l /= 100;
+      const a = s * Math.min(l, 1 - l);
+      const f = n => {
+        const k = (n + h / 30) % 12;
+        const color = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
+        return Math.round(255 * color).toString(16).padStart(2, '0');
+      };
+      return `#${f(0)}${f(8)}${f(4)}`;
+    }
+
+    // ==========================================
+    // UI Updates
+    // ==========================================
+
+    function updateParamDisplays() {
+      document.getElementById('layersValue').textContent = activeParams.layers;
+      document.getElementById('petalsValue').textContent = activeParams.petals;
+      document.getElementById('petalMultValue').textContent = activeParams.petalMult.toFixed(1);
+      document.getElementById('outerRadiusValue').textContent = activeParams.outerRadius.toFixed(2);
+      document.getElementById('thicknessValue').textContent = activeParams.thickness.toFixed(2);
+      document.getElementById('midpointValue').textContent = activeParams.midpoint.toFixed(2);
+      document.getElementById('curvatureValue').textContent = activeParams.curvature.toFixed(2);
+      document.getElementById('tangentValue').textContent = activeParams.tangent + '°';
+      document.getElementById('scaleValue').textContent = activeParams.scale.toFixed(2);
+      document.getElementById('rotationValue').textContent = activeParams.rotation + '°';
+      document.getElementById('jiggleValue').textContent = activeParams.jiggle.toFixed(2);
+      
+      document.getElementById('layers').value = activeParams.layers;
+      document.getElementById('petals').value = activeParams.petals;
+      document.getElementById('petalMult').value = activeParams.petalMult;
+      document.getElementById('outerRadius').value = activeParams.outerRadius;
+      document.getElementById('thickness').value = activeParams.thickness;
+      document.getElementById('midpoint').value = activeParams.midpoint;
+      document.getElementById('curvature').value = activeParams.curvature;
+      document.getElementById('tangent').value = activeParams.tangent;
+      document.getElementById('scale').value = activeParams.scale;
+      document.getElementById('rotation').value = activeParams.rotation;
+      document.getElementById('jiggle').value = activeParams.jiggle;
+      document.getElementById('colorStart').value = activeParams.colorStart;
+      document.getElementById('colorEnd').value = activeParams.colorEnd;
+      
+      document.getElementById('dnaString').value = encodeParams(activeParams);
+    }
+
+    function render() {
+      if (currentMode === 'single') {
+        drawFlora(document.getElementById('singleCanvas'), singleParams);
+      } else {
+        drawFlora(document.getElementById('parentACanvas'), parentAParams);
+        drawFlora(document.getElementById('parentBCanvas'), parentBParams);
+        drawFlora(document.getElementById('offspringCanvas'), offspringParams);
+      }
+    }
+
+    function showToast(message) {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 2000);
+    }
+
+    // ==========================================
+    // Event Handlers
+    // ==========================================
+
+    function setupEventListeners() {
+      // Mode switching
+      document.querySelectorAll('.mode-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          currentMode = btn.dataset.mode;
+          updateModeUI();
+        });
+      });
+
+      // Randomize buttons
+      document.getElementById('randomizeBtn').addEventListener('click', () => {
+        if (currentMode === 'single') {
+          singleParams = randomizeParams();
+          activeParams = singleParams;
+        }
+        updateParamDisplays();
+        render();
+      });
+
+      document.getElementById('randomizeABtn').addEventListener('click', () => {
+        parentAParams = randomizeParams();
+        offspringParams = crossbreed(parentAParams, parentBParams);
+        render();
+      });
+
+      document.getElementById('randomizeBBtn').addEventListener('click', () => {
+        parentBParams = randomizeParams();
+        offspringParams = crossbreed(parentAParams, parentBParams);
+        render();
+      });
+
+      document.getElementById('breedBtn').addEventListener('click', () => {
+        offspringParams = crossbreed(parentAParams, parentBParams);
+        render();
+      });
+
+      // Settings panel
+      document.getElementById('settingsBtn').addEventListener('click', () => {
+        panelOpen = !panelOpen;
+        document.getElementById('settingsPanel').classList.toggle('open', panelOpen);
+        document.getElementById('settingsBtn').classList.toggle('active', panelOpen);
+      });
+
+      document.getElementById('closePanel').addEventListener('click', () => {
+        panelOpen = false;
+        document.getElementById('settingsPanel').classList.remove('open');
+        document.getElementById('settingsBtn').classList.remove('active');
+      });
+
+      // Parameter sliders
+      const sliderParams = [
+        { id: 'layers', key: 'layers', isInt: true },
+        { id: 'petals', key: 'petals', isInt: true },
+        { id: 'petalMult', key: 'petalMult' },
+        { id: 'outerRadius', key: 'outerRadius' },
+        { id: 'thickness', key: 'thickness' },
+        { id: 'midpoint', key: 'midpoint' },
+        { id: 'curvature', key: 'curvature' },
+        { id: 'tangent', key: 'tangent', isInt: true },
+        { id: 'scale', key: 'scale' },
+        { id: 'rotation', key: 'rotation', isInt: true },
+        { id: 'jiggle', key: 'jiggle' }
+      ];
+
+      sliderParams.forEach(({ id, key, isInt }) => {
+        document.getElementById(id).addEventListener('input', (e) => {
+          const value = isInt ? parseInt(e.target.value) : parseFloat(e.target.value);
+          activeParams[key] = value;
+          
+          if (currentMode === 'single') {
+            singleParams[key] = value;
+          }
+          
+          updateParamDisplays();
+          render();
+        });
+      });
+
+      // Color pickers
+      document.getElementById('colorStart').addEventListener('input', (e) => {
+        activeParams.colorStart = e.target.value;
+        if (currentMode === 'single') singleParams.colorStart = e.target.value;
+        render();
+      });
+
+      document.getElementById('colorEnd').addEventListener('input', (e) => {
+        activeParams.colorEnd = e.target.value;
+        if (currentMode === 'single') singleParams.colorEnd = e.target.value;
+        render();
+      });
+
+      // DNA actions
+      document.getElementById('copyDna').addEventListener('click', () => {
+        const dna = encodeParams(activeParams);
+        navigator.clipboard.writeText(dna);
+        showToast('Genetic code copied');
+      });
+
+      document.getElementById('loadDna').addEventListener('click', () => {
+        const dna = document.getElementById('dnaString').value.trim();
+        const decoded = decodeParams(dna);
+        if (decoded) {
+          if (currentMode === 'single') {
+            singleParams = decoded;
+            activeParams = singleParams;
+          }
+          updateParamDisplays();
+          render();
+          showToast('Genetic code loaded');
+        } else {
+          showToast('Invalid genetic code');
+        }
+      });
+    }
+
+    function updateModeUI() {
+      const singleFrame = document.getElementById('singleFrame');
+      const parentAFrame = document.getElementById('parentAFrame');
+      const parentBFrame = document.getElementById('parentBFrame');
+      const offspringFrame = document.getElementById('offspringFrame');
+      const connector = document.getElementById('connector');
+      
+      const randomizeBtn = document.getElementById('randomizeBtn');
+      const randomizeABtn = document.getElementById('randomizeABtn');
+      const randomizeBBtn = document.getElementById('randomizeBBtn');
+      const breedBtn = document.getElementById('breedBtn');
+
+      if (currentMode === 'single') {
+        singleFrame.classList.remove('hidden');
+        parentAFrame.classList.add('hidden');
+        parentBFrame.classList.add('hidden');
+        offspringFrame.classList.add('hidden');
+        connector.classList.add('hidden');
+        
+        randomizeBtn.style.display = '';
+        randomizeABtn.style.display = 'none';
+        randomizeBBtn.style.display = 'none';
+        breedBtn.style.display = 'none';
+        
+        activeParams = singleParams;
+      } else {
+        singleFrame.classList.add('hidden');
+        parentAFrame.classList.remove('hidden');
+        parentBFrame.classList.remove('hidden');
+        offspringFrame.classList.remove('hidden');
+        connector.classList.remove('hidden');
+        
+        randomizeBtn.style.display = 'none';
+        randomizeABtn.style.display = '';
+        randomizeBBtn.style.display = '';
+        breedBtn.style.display = '';
+        
+        // Initialize crossbreed parents if needed
+        if (!parentAParams.seed || parentAParams === singleParams) {
+          parentAParams = randomizeParams();
+        }
+        if (!parentBParams.seed || parentBParams === singleParams) {
+          parentBParams = randomizeParams();
+        }
+        offspringParams = crossbreed(parentAParams, parentBParams);
+        activeParams = offspringParams;
+      }
+
+      updateParamDisplays();
+      render();
+    }
+
+    // ==========================================
+    // Initialization
+    // ==========================================
+
+    function init() {
+      singleParams = randomizeParams();
+      activeParams = singleParams;
+      
+      setupEventListeners();
+      updateParamDisplays();
+      render();
+    }
+
+    // Start
+    init();
+  </script>
+</body>
+</html>
