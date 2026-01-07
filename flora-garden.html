@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Flora Garden - Selective Breeding</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg-deep: #0a0a0a;
+      --bg-panel: #111111;
+      --bg-elevated: #1a1a1a;
+      --bg-cell: #0d0d0d;
+      --border-subtle: rgba(255, 255, 255, 0.06);
+      --border-glow: rgba(255, 255, 255, 0.12);
+      --border-selected: rgba(220, 80, 80, 0.6);
+      --border-hover: rgba(126, 184, 168, 0.4);
+      --text-primary: #f5f5f0;
+      --text-secondary: rgba(255, 255, 255, 0.5);
+      --text-tertiary: rgba(255, 255, 255, 0.3);
+      --accent-warm: #d4a574;
+      --accent-cool: #7eb8a8;
+      --accent-rose: #c49b9b;
+      --accent-red: #dc5050;
+    }
+    body { font-family: 'DM Sans', sans-serif; background: var(--bg-deep); color: var(--text-primary); min-height: 100vh; overflow-x: hidden; }
+    
+    /* Header */
+    .header { position: fixed; top: 0; left: 0; right: 0; height: 70px; background: var(--bg-panel); border-bottom: 1px solid var(--border-subtle); display: flex; align-items: center; justify-content: space-between; padding: 0 32px; z-index: 100; }
+    .header-title { font-family: 'Cormorant Garamond', serif; font-size: 24px; font-weight: 300; letter-spacing: 0.02em; }
+    .header-subtitle { font-size: 12px; color: var(--text-tertiary); letter-spacing: 0.1em; text-transform: uppercase; margin-left: 16px; }
+    .header-left { display: flex; align-items: baseline; }
+    .header-stats { display: flex; gap: 24px; align-items: center; }
+    .stat { text-align: center; }
+    .stat-value { font-size: 20px; font-weight: 500; color: var(--accent-warm); }
+    .stat-label { font-size: 10px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.1em; }
+    .header-actions { display: flex; gap: 12px; }
+    .btn { padding: 10px 20px; background: transparent; border: 1px solid var(--border-subtle); border-radius: 8px; color: var(--text-secondary); font-size: 13px; cursor: pointer; transition: all 0.2s ease; display: flex; align-items: center; gap: 8px; }
+    .btn:hover { background: rgba(255, 255, 255, 0.05); border-color: var(--border-glow); color: var(--text-primary); }
+    .btn.primary { background: var(--accent-cool); border-color: var(--accent-cool); color: var(--bg-deep); }
+    .btn.primary:hover { background: #8ec9b8; }
+    .btn.danger { border-color: var(--accent-red); color: var(--accent-red); }
+    .btn.danger:hover { background: rgba(220, 80, 80, 0.1); }
+    .btn svg { width: 16px; height: 16px; }
+
+    /* Main layout */
+    .main { display: flex; padding-top: 70px; min-height: 100vh; }
+    
+    /* Garden grid */
+    .garden-container { flex: 1; padding: 32px; overflow-y: auto; }
+    .garden-grid { display: grid; gap: 16px; justify-content: center; }
+    
+    /* Garden cell */
+    .garden-cell { position: relative; background: var(--bg-cell); border: 2px solid var(--border-subtle); border-radius: 16px; aspect-ratio: 1; cursor: pointer; transition: all 0.3s ease; overflow: hidden; }
+    .garden-cell:hover { border-color: var(--border-hover); transform: translateY(-2px); }
+    .garden-cell.selected { border-color: var(--accent-red); background: rgba(220, 80, 80, 0.05); }
+    .garden-cell.selected::after { content: '✕'; position: absolute; top: 8px; right: 8px; width: 24px; height: 24px; background: var(--accent-red); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; color: white; }
+    .garden-cell canvas { width: 100%; height: 100%; display: block; }
+    .cell-info { position: absolute; bottom: 0; left: 0; right: 0; padding: 8px 10px; background: linear-gradient(transparent, rgba(0,0,0,0.8)); opacity: 0; transition: opacity 0.2s ease; }
+    .garden-cell:hover .cell-info { opacity: 1; }
+    .cell-gen { font-size: 10px; color: var(--accent-warm); text-transform: uppercase; letter-spacing: 0.1em; }
+    .cell-id { font-size: 11px; color: var(--text-tertiary); margin-top: 2px; font-family: monospace; }
+
+    /* Sidebar - Family Tree Panel */
+    .sidebar { width: 400px; background: var(--bg-panel); border-left: 1px solid var(--border-subtle); display: flex; flex-direction: column; transition: width 0.3s ease; }
+    .sidebar.collapsed { width: 0; overflow: hidden; }
+    .sidebar-header { padding: 20px 24px; border-bottom: 1px solid var(--border-subtle); }
+    .sidebar-title { font-family: 'Cormorant Garamond', serif; font-size: 18px; font-weight: 400; margin-bottom: 4px; }
+    .sidebar-subtitle { font-size: 11px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.1em; }
+    .sidebar-content { flex: 1; overflow-y: auto; padding: 20px 24px; }
+    
+    /* Selected flora preview */
+    .preview-section { margin-bottom: 24px; }
+    .preview-canvas-wrap { background: var(--bg-deep); border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+    .preview-canvas-wrap canvas { width: 100%; aspect-ratio: 1; display: block; border-radius: 8px; }
+    .preview-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .preview-stat { background: var(--bg-elevated); padding: 10px 12px; border-radius: 8px; }
+    .preview-stat-label { font-size: 10px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; }
+    .preview-stat-value { font-size: 14px; color: var(--text-primary); }
+    
+    /* Family tree */
+    .tree-section { margin-top: 24px; }
+    .tree-section-title { font-size: 11px; font-weight: 500; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 1px solid var(--border-subtle); }
+    .family-tree { position: relative; }
+    .tree-node { display: flex; align-items: center; gap: 12px; padding: 10px 12px; background: var(--bg-elevated); border-radius: 8px; margin-bottom: 8px; cursor: pointer; transition: all 0.2s ease; border: 1px solid transparent; }
+    .tree-node:hover { border-color: var(--border-glow); }
+    .tree-node.current { border-color: var(--accent-cool); background: rgba(126, 184, 168, 0.1); }
+    .tree-node-canvas { width: 40px; height: 40px; border-radius: 6px; flex-shrink: 0; }
+    .tree-node-info { flex: 1; min-width: 0; }
+    .tree-node-gen { font-size: 10px; color: var(--accent-warm); text-transform: uppercase; letter-spacing: 0.05em; }
+    .tree-node-id { font-size: 11px; color: var(--text-tertiary); font-family: monospace; overflow: hidden; text-overflow: ellipsis; }
+    .tree-node-relation { font-size: 10px; color: var(--text-tertiary); background: var(--bg-deep); padding: 2px 6px; border-radius: 4px; }
+    
+    /* Tree lines */
+    .tree-level { margin-left: 20px; padding-left: 20px; border-left: 1px dashed var(--border-subtle); }
+    .tree-level::before { content: ''; position: absolute; left: 0; top: 20px; width: 20px; height: 1px; background: var(--border-subtle); }
+
+    /* Empty state */
+    .empty-state { text-align: center; padding: 40px 20px; color: var(--text-tertiary); }
+    .empty-state-icon { font-size: 48px; margin-bottom: 16px; opacity: 0.3; }
+    .empty-state-text { font-size: 14px; line-height: 1.6; }
+
+    /* Modal */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; z-index: 1000; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; }
+    .modal-overlay.open { opacity: 1; pointer-events: auto; }
+    .modal { background: var(--bg-panel); border: 1px solid var(--border-subtle); border-radius: 20px; width: 90%; max-width: 900px; max-height: 85vh; overflow: hidden; display: flex; flex-direction: column; transform: scale(0.95); transition: transform 0.3s ease; }
+    .modal-overlay.open .modal { transform: scale(1); }
+    .modal-header { padding: 24px; border-bottom: 1px solid var(--border-subtle); display: flex; justify-content: space-between; align-items: center; }
+    .modal-title { font-family: 'Cormorant Garamond', serif; font-size: 22px; }
+    .modal-close { width: 36px; height: 36px; background: transparent; border: none; color: var(--text-secondary); cursor: pointer; border-radius: 8px; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
+    .modal-close:hover { background: rgba(255,255,255,0.05); color: var(--text-primary); }
+    .modal-body { flex: 1; overflow-y: auto; padding: 24px; }
+    
+    /* Full tree visualization */
+    .full-tree { display: flex; flex-direction: column; align-items: center; gap: 24px; padding: 20px; }
+    .tree-row { display: flex; gap: 16px; justify-content: center; }
+    .tree-card { background: var(--bg-elevated); border: 1px solid var(--border-subtle); border-radius: 12px; padding: 12px; text-align: center; min-width: 100px; }
+    .tree-card.highlight { border-color: var(--accent-cool); }
+    .tree-card canvas { width: 80px; height: 80px; border-radius: 8px; margin-bottom: 8px; }
+    .tree-card-gen { font-size: 9px; color: var(--accent-warm); text-transform: uppercase; letter-spacing: 0.05em; }
+    .tree-card-label { font-size: 10px; color: var(--text-tertiary); margin-top: 4px; }
+    .tree-connector { width: 2px; height: 24px; background: linear-gradient(var(--accent-warm), var(--accent-cool)); margin: 0 auto; }
+    .tree-branch { display: flex; align-items: flex-start; justify-content: center; position: relative; }
+    .tree-branch::before { content: ''; position: absolute; top: 0; left: 25%; right: 25%; height: 2px; background: var(--border-glow); }
+
+    /* Grid size control */
+    .grid-controls { display: flex; gap: 12px; align-items: center; margin-bottom: 24px; }
+    .grid-size-btn { width: 36px; height: 36px; background: var(--bg-elevated); border: 1px solid var(--border-subtle); border-radius: 8px; color: var(--text-secondary); cursor: pointer; font-size: 16px; transition: all 0.2s; }
+    .grid-size-btn:hover { border-color: var(--border-glow); color: var(--text-primary); }
+    .grid-size-btn.active { background: var(--accent-cool); border-color: var(--accent-cool); color: var(--bg-deep); }
+    .grid-label { font-size: 12px; color: var(--text-tertiary); }
+
+    /* Toast */
+    .toast { position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%) translateY(20px); padding: 14px 28px; background: var(--bg-elevated); border: 1px solid var(--border-glow); border-radius: 100px; font-size: 14px; color: var(--text-primary); opacity: 0; transition: all 0.3s ease; pointer-events: none; z-index: 1000; }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border-subtle); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--border-glow); }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="header-left">
+      <span class="header-title">Flora Garden</span>
+      <span class="header-subtitle">Selective Breeding Laboratory</span>
+    </div>
+    <div class="header-stats">
+      <div class="stat">
+        <div class="stat-value" id="genNumber">1</div>
+        <div class="stat-label">Generation</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value" id="selectedCount">0</div>
+        <div class="stat-label">Culled</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value" id="totalSpecimens">0</div>
+        <div class="stat-label">Specimens</div>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button class="btn danger" id="cullBtn" disabled>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        Cull Selected
+      </button>
+      <button class="btn primary" id="breedBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+        Breed Next Generation
+      </button>
+    </div>
+  </header>
+
+  <main class="main">
+    <div class="garden-container">
+      <div class="grid-controls">
+        <span class="grid-label">Grid:</span>
+        <button class="grid-size-btn" data-size="3">3</button>
+        <button class="grid-size-btn active" data-size="4">4</button>
+        <button class="grid-size-btn" data-size="5">5</button>
+        <button class="grid-size-btn" data-size="6">6</button>
+      </div>
+      <div class="garden-grid" id="gardenGrid"></div>
+    </div>
+
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-title">Specimen Details</div>
+        <div class="sidebar-subtitle">Lineage & Genetics</div>
+      </div>
+      <div class="sidebar-content" id="sidebarContent">
+        <div class="empty-state">
+          <div class="empty-state-icon">🌱</div>
+          <div class="empty-state-text">Hover over a flower<br>to view its lineage</div>
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <!-- Family Tree Modal -->
+  <div class="modal-overlay" id="treeModal">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title">Complete Family Tree</div>
+        <button class="modal-close" id="closeModal">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <div class="modal-body" id="treeModalBody"></div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    // ==========================================
+    // GENETICS (from previous implementation)
+    // ==========================================
+    const GeneticsConfig = {
+      inheritanceProbabilities: { singleParent: 0.25, blend: 0.60, mutate: 0.15 },
+      genes: {
+        layers: { type: 'continuous', distribution: 'skewNormal', inheritProbs: { singleParent: 0.30, blend: 0.55, mutate: 0.15 }, initial: { mean: 6, stdDev: 2, skew: 0 }, bounds: { min: 2, max: 15 }, round: true },
+        petalMode: { type: 'discrete', inheritProbs: { singleParent: 0.50, blend: 0.30, mutate: 0.20 }, options: [{ value: 'fixed', weight: 0.4 }, { value: 'fibonacci', weight: 0.35 }, { value: 'multiplier', weight: 0.25 }] },
+        basePetals: { type: 'continuous', distribution: 'skewNormal', inheritProbs: { singleParent: 0.25, blend: 0.60, mutate: 0.15 }, initial: { mean: 8, stdDev: 3, skew: 0.5 }, bounds: { min: 3, max: 24 }, round: true },
+        petalMultiplier: { type: 'continuous', distribution: 'skewNormal', inheritProbs: { singleParent: 0.20, blend: 0.65, mutate: 0.15 }, initial: { mean: 1.0, stdDev: 0.15, skew: 0 }, bounds: { min: 0.5, max: 1.8 }, round: false },
+        fibonacciStart: { type: 'discrete', inheritProbs: { singleParent: 0.40, blend: 0.35, mutate: 0.25 }, options: [{ value: 0, weight: 0.05 }, { value: 1, weight: 0.10 }, { value: 2, weight: 0.15 }, { value: 3, weight: 0.25 }, { value: 4, weight: 0.25 }, { value: 5, weight: 0.15 }, { value: 6, weight: 0.05 }] },
+        outerRadius: { type: 'continuous', distribution: 'skewNormal', inheritProbs: { singleParent: 0.20, blend: 0.65, mutate: 0.15 }, initial: { mean: 0.85, stdDev: 0.1, skew: -0.5 }, bounds: { min: 0.4, max: 1.0 }, round: false },
+        thickness: { type: 'continuous', distribution: 'skewNormal', inheritProbs: { singleParent: 0.20, blend: 0.65, mutate: 0.15 }, initial: { mean: 0.4, stdDev: 0.12, skew: 0.3 }, bounds: { min: 0.15, max: 0.8 }, round: false },
+        midpoint: { type: 'continuous', distribution: 'skewNormal', inheritProbs: { singleParent: 0.20, blend: 0.65, mutate: 0.15 }, initial: { mean: 0.5, stdDev: 0.12, skew: 0 }, bounds: { min: 0.2, max: 0.8 }, round: false },
+        curvature: { type: 'continuous', distribution: 'skewNormal', inheritProbs: { singleParent: 0.20, blend: 0.65, mutate: 0.15 }, initial: { mean: 0.4, stdDev: 0.2, skew: 0 }, bounds: { min: 0, max: 1.0 }, round: false },
+        tangent: { type: 'uniform', inheritProbs: { singleParent: 0.30, blend: 0.45, mutate: 0.25 }, initial: { min: 0, max: 80 }, bounds: { min: 0, max: 90 }, round: true },
+        scale: { type: 'continuous', distribution: 'skewNormal', inheritProbs: { singleParent: 0.25, blend: 0.60, mutate: 0.15 }, initial: { mean: 0.82, stdDev: 0.08, skew: 0 }, bounds: { min: 0.5, max: 0.95 }, round: false },
+        rotation: { type: 'uniform', inheritProbs: { singleParent: 0.30, blend: 0.45, mutate: 0.25 }, initial: { min: 0, max: 60 }, bounds: { min: 0, max: 90 }, round: true },
+        jiggle: { type: 'continuous', distribution: 'skewNormal', inheritProbs: { singleParent: 0.25, blend: 0.55, mutate: 0.20 }, initial: { mean: 0.05, stdDev: 0.05, skew: 1.0 }, bounds: { min: 0, max: 0.3 }, round: false },
+        colorOuter: { type: 'color', inheritProbs: { singleParent: 0.30, blend: 0.55, mutate: 0.15 }, initial: { L: { min: 25, max: 55 }, a: { min: -40, max: 40 }, b: { min: -40, max: 40 } }, mutationStdDev: { L: 15, a: 25, b: 25 } },
+        colorInner: { type: 'color', inheritProbs: { singleParent: 0.30, blend: 0.55, mutate: 0.15 }, initial: { L: { min: 15, max: 40 }, a: { min: -30, max: 30 }, b: { min: -30, max: 30 } }, mutationStdDev: { L: 12, a: 20, b: 20 } }
+      },
+      stdDevInheritance: { blendRatio: 0.5, mutationFactor: 0.1, bounds: { minRatio: 0.5, maxRatio: 2.0 } }
+    };
+
+    // Math utilities
+    function randomNormal(mean = 0, stdDev = 1) { const u1 = Math.random(), u2 = Math.random(); return mean + Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2) * stdDev; }
+    function randomSkewNormal(mean, stdDev, skew) { const u0 = randomNormal(0, 1), v = randomNormal(0, 1), delta = skew / Math.sqrt(1 + skew * skew), u1 = delta * u0 + Math.sqrt(1 - delta * delta) * v; return mean + stdDev * (u0 >= 0 ? u1 : -u1); }
+    function clamp(value, min, max) { return Math.max(min, Math.min(max, value)); }
+    function weightedRandom(options) { const total = options.reduce((s, o) => s + o.weight, 0); let r = Math.random() * total; for (const o of options) { r -= o.weight; if (r <= 0) return o.value; } return options[options.length - 1].value; }
+    function fibonacci(n) { const seq = [1, 1]; for (let i = 2; i <= n; i++) seq[i] = seq[i-1] + seq[i-2]; return seq[Math.min(n, 12)]; }
+    function mulberry32(a) { return function() { let t = a += 0x6D2B79F5; t = Math.imul(t ^ t >>> 15, t | 1); t ^= t + Math.imul(t ^ t >>> 7, t | 61); return ((t ^ t >>> 14) >>> 0) / 4294967296; } }
+    function generateId() { return Math.random().toString(36).substr(2, 8); }
+
+    // Color utilities
+    function srgbToXyz(r, g, b) { r /= 255; g /= 255; b /= 255; r = r > 0.04045 ? Math.pow((r + 0.055) / 1.055, 2.4) : r / 12.92; g = g > 0.04045 ? Math.pow((g + 0.055) / 1.055, 2.4) : g / 12.92; b = b > 0.04045 ? Math.pow((b + 0.055) / 1.055, 2.4) : b / 12.92; return { x: r * 0.4124564 + g * 0.3575761 + b * 0.1804375, y: r * 0.2126729 + g * 0.7151522 + b * 0.0721750, z: r * 0.0193339 + g * 0.1191920 + b * 0.9503041 }; }
+    function xyzToLab(x, y, z) { const xn = 0.95047, yn = 1.0, zn = 1.08883; x /= xn; y /= yn; z /= zn; const f = t => t > 0.008856 ? Math.pow(t, 1/3) : (7.787 * t) + 16/116; return { L: (116 * f(y)) - 16, a: 500 * (f(x) - f(y)), b: 200 * (f(y) - f(z)) }; }
+    function labToXyz(L, a, b) { const xn = 0.95047, yn = 1.0, zn = 1.08883, fy = (L + 16) / 116, fx = a / 500 + fy, fz = fy - b / 200, f_inv = t => { const t3 = t * t * t; return t3 > 0.008856 ? t3 : (t - 16/116) / 7.787; }; return { x: xn * f_inv(fx), y: yn * f_inv(fy), z: zn * f_inv(fz) }; }
+    function xyzToSrgb(x, y, z) { let r = x * 3.2404542 + y * -1.5371385 + z * -0.4985314, g = x * -0.9692660 + y * 1.8760108 + z * 0.0415560, b = x * 0.0556434 + y * -0.2040259 + z * 1.0572252; const gamma = c => c > 0.0031308 ? 1.055 * Math.pow(c, 1/2.4) - 0.055 : 12.92 * c; return { r: clamp(Math.round(gamma(r) * 255), 0, 255), g: clamp(Math.round(gamma(g) * 255), 0, 255), b: clamp(Math.round(gamma(b) * 255), 0, 255) }; }
+    function hexToLab(hex) { const r = parseInt(hex.slice(1,3), 16), g = parseInt(hex.slice(3,5), 16), b = parseInt(hex.slice(5,7), 16), xyz = srgbToXyz(r, g, b); return xyzToLab(xyz.x, xyz.y, xyz.z); }
+    function labToHex(L, a, b) { const xyz = labToXyz(L, a, b), rgb = xyzToSrgb(xyz.x, xyz.y, xyz.z); return '#' + [rgb.r, rgb.g, rgb.b].map(c => c.toString(16).padStart(2, '0')).join(''); }
+    function hexToRgb(hex) { const r = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex); return r ? { r: parseInt(r[1], 16), g: parseInt(r[2], 16), b: parseInt(r[3], 16) } : null; }
+    function rgbToHex(r, g, b) { return '#' + [r, g, b].map(x => Math.round(x).toString(16).padStart(2, '0')).join(''); }
+    function lerpColor(c1, c2, t) { const a = hexToRgb(c1), b = hexToRgb(c2); return rgbToHex(a.r + (b.r - a.r) * t, a.g + (b.g - a.g) * t, a.b + (b.b - a.b) * t); }
+
+    // Genome
+    function createGenome() {
+      return { layers: { mean: 6, stdDev: 2, skew: 0 }, basePetals: { mean: 8, stdDev: 3, skew: 0.5 }, petalMultiplier: { mean: 1.0, stdDev: 0.15, skew: 0 }, outerRadius: { mean: 0.85, stdDev: 0.1, skew: -0.5 }, thickness: { mean: 0.4, stdDev: 0.12, skew: 0.3 }, midpoint: { mean: 0.5, stdDev: 0.12, skew: 0 }, curvature: { mean: 0.4, stdDev: 0.2, skew: 0 }, scale: { mean: 0.82, stdDev: 0.08, skew: 0 }, jiggle: { mean: 0.05, stdDev: 0.05, skew: 1.0 }, tangent: { value: 45 }, rotation: { value: 22 }, petalMode: { value: 'fixed' }, fibonacciStart: { value: 3 }, colorOuter: { L: 35, a: -20, b: 15 }, colorInner: { L: 25, a: -15, b: 10 }, seed: Math.random() * 10000 };
+    }
+
+    // Inheritance functions
+    function inheritContinuousGene(cfg, pA, pB) {
+      const probs = cfg.inheritProbs, roll = Math.random(); let result = { mean: 0, stdDev: 0, skew: 0 };
+      if (roll < probs.singleParent) { const p = Math.random() < 0.5 ? pA : pB; result = { mean: p.mean, stdDev: p.stdDev, skew: p.skew }; }
+      else if (roll < probs.singleParent + probs.blend) { const w = 0.3 + Math.random() * 0.4; result.mean = pA.mean * w + pB.mean * (1 - w) + randomNormal(0, (pA.stdDev + pB.stdDev) / 4); result.stdDev = (pA.stdDev + pB.stdDev) / 2; result.skew = pA.skew * w + pB.skew * (1 - w); }
+      else { const init = cfg.initial; result = { mean: randomSkewNormal(init.mean, init.stdDev, init.skew), stdDev: init.stdDev * (0.5 + Math.random()), skew: init.skew + randomNormal(0, 0.3) }; }
+      const stdCfg = GeneticsConfig.stdDevInheritance; result.stdDev *= (stdCfg.bounds.minRatio + Math.random() * (stdCfg.bounds.maxRatio - stdCfg.bounds.minRatio)); result.stdDev = Math.max(0.01, result.stdDev); result.mean = clamp(result.mean, cfg.bounds.min, cfg.bounds.max); if (cfg.round) result.mean = Math.round(result.mean); return result;
+    }
+    function inheritUniformGene(cfg, pA, pB) {
+      const probs = cfg.inheritProbs, roll = Math.random(); let value;
+      if (roll < probs.singleParent) value = Math.random() < 0.5 ? pA.value : pB.value;
+      else if (roll < probs.singleParent + probs.blend) { const min = Math.min(pA.value, pB.value), max = Math.max(pA.value, pB.value); value = min + Math.random() * (max - min); }
+      else { const init = cfg.initial; value = init.min + Math.random() * (init.max - init.min); }
+      value = clamp(value, cfg.bounds.min, cfg.bounds.max); if (cfg.round) value = Math.round(value); return { value };
+    }
+    function inheritDiscreteGene(cfg, pA, pB) {
+      const probs = cfg.inheritProbs, roll = Math.random(); let value;
+      if (roll < probs.singleParent) value = Math.random() < 0.5 ? pA.value : pB.value;
+      else if (roll < probs.singleParent + probs.blend) { if (typeof pA.value === 'number' && typeof pB.value === 'number') { const avg = (pA.value + pB.value) / 2; value = Math.random() < 0.5 ? Math.floor(avg) : Math.ceil(avg); } else value = Math.random() < 0.5 ? pA.value : pB.value; }
+      else value = weightedRandom(cfg.options); return { value };
+    }
+    function inheritColorGene(cfg, pA, pB) {
+      const probs = cfg.inheritProbs, roll = Math.random(); let L, a, b;
+      if (roll < probs.singleParent) { const p = Math.random() < 0.5 ? pA : pB; L = p.L; a = p.a; b = p.b; }
+      else if (roll < probs.singleParent + probs.blend) { const w = 0.3 + Math.random() * 0.4; L = pA.L * w + pB.L * (1 - w) + randomNormal(0, 5); a = pA.a * w + pB.a * (1 - w) + randomNormal(0, 8); b = pA.b * w + pB.b * (1 - w) + randomNormal(0, 8); }
+      else { const init = cfg.initial; L = init.L.min + Math.random() * (init.L.max - init.L.min); a = init.a.min + Math.random() * (init.a.max - init.a.min); b = init.b.min + Math.random() * (init.b.max - init.b.min); }
+      return { L: clamp(L, 0, 100), a: clamp(a, -128, 127), b: clamp(b, -128, 127) };
+    }
+
+    function crossbreed(gA, gB, parentAId, parentBId, generation) {
+      const o = createGenome(), cfg = GeneticsConfig.genes;
+      o.layers = inheritContinuousGene(cfg.layers, gA.layers, gB.layers);
+      o.basePetals = inheritContinuousGene(cfg.basePetals, gA.basePetals, gB.basePetals);
+      o.petalMultiplier = inheritContinuousGene(cfg.petalMultiplier, gA.petalMultiplier, gB.petalMultiplier);
+      o.outerRadius = inheritContinuousGene(cfg.outerRadius, gA.outerRadius, gB.outerRadius);
+      o.thickness = inheritContinuousGene(cfg.thickness, gA.thickness, gB.thickness);
+      o.midpoint = inheritContinuousGene(cfg.midpoint, gA.midpoint, gB.midpoint);
+      o.curvature = inheritContinuousGene(cfg.curvature, gA.curvature, gB.curvature);
+      o.scale = inheritContinuousGene(cfg.scale, gA.scale, gB.scale);
+      o.jiggle = inheritContinuousGene(cfg.jiggle, gA.jiggle, gB.jiggle);
+      o.tangent = inheritUniformGene(cfg.tangent, gA.tangent, gB.tangent);
+      o.rotation = inheritUniformGene(cfg.rotation, gA.rotation, gB.rotation);
+      o.petalMode = inheritDiscreteGene(cfg.petalMode, gA.petalMode, gB.petalMode);
+      o.fibonacciStart = inheritDiscreteGene(cfg.fibonacciStart, gA.fibonacciStart, gB.fibonacciStart);
+      o.colorOuter = inheritColorGene(cfg.colorOuter, gA.colorOuter, gB.colorOuter);
+      o.colorInner = inheritColorGene(cfg.colorInner, gA.colorInner, gB.colorInner);
+      o.seed = Math.random() * 10000;
+      return { id: generateId(), genome: o, parentA: parentAId, parentB: parentBId, generation };
+    }
+
+    function randomGenome() {
+      const g = createGenome(), cfg = GeneticsConfig.genes;
+      for (const key of ['layers', 'basePetals', 'petalMultiplier', 'outerRadius', 'thickness', 'midpoint', 'curvature', 'scale', 'jiggle']) { const c = cfg[key], init = c.initial; let mean = randomSkewNormal(init.mean, init.stdDev, init.skew); mean = clamp(mean, c.bounds.min, c.bounds.max); if (c.round) mean = Math.round(mean); g[key] = { mean, stdDev: init.stdDev * (0.5 + Math.random()), skew: init.skew + randomNormal(0, 0.2) }; }
+      for (const key of ['tangent', 'rotation']) { const c = cfg[key], init = c.initial; let v = init.min + Math.random() * (init.max - init.min); if (c.round) v = Math.round(v); g[key] = { value: v }; }
+      g.petalMode = { value: weightedRandom(cfg.petalMode.options) }; g.fibonacciStart = { value: weightedRandom(cfg.fibonacciStart.options) };
+      for (const key of ['colorOuter', 'colorInner']) { const init = cfg[key].initial; g[key] = { L: init.L.min + Math.random() * (init.L.max - init.L.min), a: init.a.min + Math.random() * (init.a.max - init.a.min), b: init.b.min + Math.random() * (init.b.max - init.b.min) }; }
+      g.seed = Math.random() * 10000; return g;
+    }
+
+    function createSpecimen(generation) { return { id: generateId(), genome: randomGenome(), parentA: null, parentB: null, generation }; }
+
+    function getPhenotype(g) {
+      return { layers: g.layers.mean, petalMode: g.petalMode.value, basePetals: g.basePetals.mean, fibonacciStart: g.fibonacciStart.value, petalMultiplier: g.petalMultiplier.mean, outerRadius: g.outerRadius.mean, thickness: g.thickness.mean, midpoint: g.midpoint.mean, curvature: g.curvature.mean, tangent: g.tangent.value, scale: g.scale.mean, rotation: g.rotation.value, jiggle: g.jiggle.mean, colorOuter: labToHex(g.colorOuter.L, g.colorOuter.a, g.colorOuter.b), colorInner: labToHex(g.colorInner.L, g.colorInner.a, g.colorInner.b), seed: g.seed };
+    }
+
+    // Drawing
+    function drawPetal(ctx, cx, cy, baseR, p, rng) {
+      const outerR = baseR * p.outerRadius, petalW = baseR * p.thickness, midR = outerR * p.midpoint, tangentRad = (p.tangent * Math.PI) / 180, curveInf = p.curvature;
+      const jf = p.jiggle, jo = 1 + (rng() - 0.5) * jf, jm = 1 + (rng() - 0.5) * jf, jw = 1 + (rng() - 0.5) * jf;
+      ctx.beginPath(); ctx.moveTo(cx, cy);
+      const wAtMid = petalW * jw, ctrlX = wAtMid * (0.5 + curveInf * 0.5), ctrlY = midR * jm, tangX = Math.sin(tangentRad) * wAtMid * 0.3;
+      ctx.quadraticCurveTo(cx + ctrlX + tangX, cy - ctrlY, cx, cy - outerR * jo);
+      ctx.quadraticCurveTo(cx - ctrlX - tangX, cy - ctrlY, cx, cy); ctx.closePath();
+    }
+    function getPetalCount(p, layer) {
+      switch (p.petalMode) { case 'fixed': return Math.round(p.basePetals); case 'fibonacci': return fibonacci(Math.min(p.fibonacciStart + layer, 12)); case 'multiplier': return Math.round(p.basePetals * Math.pow(p.petalMultiplier, layer)); default: return Math.round(p.basePetals); }
+    }
+    function drawFlora(canvas, genome) {
+      const ctx = canvas.getContext('2d'), w = canvas.width, h = canvas.height, cx = w / 2, cy = h / 2;
+      ctx.fillStyle = '#0a0a0a'; ctx.fillRect(0, 0, w, h);
+      const p = getPhenotype(genome), rng = mulberry32(p.seed), baseR = Math.min(w, h) * 0.42;
+      for (let layer = 0; layer < p.layers; layer++) {
+        const layerScale = Math.pow(p.scale, layer), layerR = baseR * layerScale, layerRot = (p.rotation * layer * Math.PI) / 180;
+        let petalCount = clamp(getPetalCount(p, layer), 3, 36);
+        const colorT = layer / Math.max(1, p.layers - 1), layerColor = lerpColor(p.colorOuter, p.colorInner, colorT);
+        for (let petal = 0; petal < petalCount; petal++) {
+          const angle = (petal * 2 * Math.PI) / petalCount + layerRot;
+          ctx.save(); ctx.translate(cx, cy); ctx.rotate(angle); ctx.translate(-cx, -cy);
+          drawPetal(ctx, cx, cy, layerR, p, rng); ctx.fillStyle = layerColor; ctx.fill();
+          ctx.strokeStyle = lerpColor(layerColor, '#000000', 0.3); ctx.lineWidth = 0.5; ctx.stroke(); ctx.restore();
+        }
+      }
+    }
+
+    // ==========================================
+    // GARDEN STATE
+    // ==========================================
+    let gridSize = 4;
+    let currentGeneration = 1;
+    let garden = []; // Array of specimens in current grid
+    let archive = {}; // All specimens ever created, by ID
+    let selectedCells = new Set();
+    let hoveredSpecimen = null;
+
+    function initGarden() {
+      garden = [];
+      archive = {};
+      selectedCells.clear();
+      currentGeneration = 1;
+      const count = gridSize * gridSize;
+      for (let i = 0; i < count; i++) {
+        const specimen = createSpecimen(1);
+        garden.push(specimen);
+        archive[specimen.id] = specimen;
+      }
+      renderGarden();
+      updateStats();
+    }
+
+    function renderGarden() {
+      const grid = document.getElementById('gardenGrid');
+      grid.innerHTML = '';
+      grid.style.gridTemplateColumns = `repeat(${gridSize}, 1fr)`;
+      grid.style.maxWidth = `${gridSize * 140 + (gridSize - 1) * 16}px`;
+
+      garden.forEach((specimen, index) => {
+        const cell = document.createElement('div');
+        cell.className = 'garden-cell' + (selectedCells.has(index) ? ' selected' : '');
+        cell.dataset.index = index;
+
+        const canvas = document.createElement('canvas');
+        canvas.width = 200;
+        canvas.height = 200;
+        drawFlora(canvas, specimen.genome);
+        cell.appendChild(canvas);
+
+        const info = document.createElement('div');
+        info.className = 'cell-info';
+        info.innerHTML = `<div class="cell-gen">Gen ${specimen.generation}</div><div class="cell-id">${specimen.id}</div>`;
+        cell.appendChild(info);
+
+        cell.addEventListener('click', () => toggleSelection(index));
+        cell.addEventListener('mouseenter', () => showSpecimenDetails(specimen));
+        cell.addEventListener('mouseleave', () => { /* Keep showing last hovered */ });
+
+        grid.appendChild(cell);
+      });
+    }
+
+    function toggleSelection(index) {
+      if (selectedCells.has(index)) {
+        selectedCells.delete(index);
+      } else {
+        selectedCells.add(index);
+      }
+      renderGarden();
+      updateStats();
+    }
+
+    function updateStats() {
+      document.getElementById('genNumber').textContent = currentGeneration;
+      document.getElementById('selectedCount').textContent = selectedCells.size;
+      document.getElementById('totalSpecimens').textContent = Object.keys(archive).length;
+      document.getElementById('cullBtn').disabled = selectedCells.size === 0;
+    }
+
+    function cullSelected() {
+      if (selectedCells.size === 0) return;
+      if (selectedCells.size >= garden.length) {
+        showToast('Cannot cull all specimens!');
+        return;
+      }
+      // Remove selected from garden (not from archive - they're still ancestors)
+      const remaining = garden.filter((_, i) => !selectedCells.has(i));
+      garden = remaining;
+      selectedCells.clear();
+      renderGarden();
+      updateStats();
+      showToast(`Culled ${garden.length} specimens remain`);
+    }
+
+    function breedNextGeneration() {
+      if (garden.length < 2) {
+        showToast('Need at least 2 specimens to breed!');
+        return;
+      }
+
+      currentGeneration++;
+      const targetCount = gridSize * gridSize;
+      const survivors = [...garden];
+      const newGarden = [];
+
+      // Fill grid with offspring from survivors
+      for (let i = 0; i < targetCount; i++) {
+        // Randomly select two different parents
+        const parentAIdx = Math.floor(Math.random() * survivors.length);
+        let parentBIdx = Math.floor(Math.random() * survivors.length);
+        while (parentBIdx === parentAIdx && survivors.length > 1) {
+          parentBIdx = Math.floor(Math.random() * survivors.length);
+        }
+
+        const parentA = survivors[parentAIdx];
+        const parentB = survivors[parentBIdx];
+
+        const offspring = crossbreed(
+          parentA.genome,
+          parentB.genome,
+          parentA.id,
+          parentB.id,
+          currentGeneration
+        );
+
+        newGarden.push(offspring);
+        archive[offspring.id] = offspring;
+      }
+
+      garden = newGarden;
+      selectedCells.clear();
+      renderGarden();
+      updateStats();
+      showToast(`Generation ${currentGeneration} bred!`);
+    }
+
+    // ==========================================
+    // SPECIMEN DETAILS & FAMILY TREE
+    // ==========================================
+    function showSpecimenDetails(specimen) {
+      hoveredSpecimen = specimen;
+      const content = document.getElementById('sidebarContent');
+      
+      // Get ancestors
+      const ancestors = getAncestors(specimen.id, 3);
+      
+      content.innerHTML = `
+        <div class="preview-section">
+          <div class="preview-canvas-wrap">
+            <canvas id="previewCanvas" width="300" height="300"></canvas>
+          </div>
+          <div class="preview-stats">
+            <div class="preview-stat">
+              <div class="preview-stat-label">Generation</div>
+              <div class="preview-stat-value">${specimen.generation}</div>
+            </div>
+            <div class="preview-stat">
+              <div class="preview-stat-label">ID</div>
+              <div class="preview-stat-value" style="font-family: monospace; font-size: 12px;">${specimen.id}</div>
+            </div>
+            <div class="preview-stat">
+              <div class="preview-stat-label">Layers</div>
+              <div class="preview-stat-value">${Math.round(specimen.genome.layers.mean)}</div>
+            </div>
+            <div class="preview-stat">
+              <div class="preview-stat-label">Petal Mode</div>
+              <div class="preview-stat-value" style="text-transform: capitalize;">${specimen.genome.petalMode.value}</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="tree-section">
+          <div class="tree-section-title">Lineage (${ancestors.length} ancestors)</div>
+          <div class="family-tree">
+            ${renderLineageNodes(specimen, ancestors)}
+          </div>
+          ${ancestors.length > 0 ? `<button class="btn" style="width: 100%; margin-top: 16px;" onclick="openFullTree('${specimen.id}')">View Full Family Tree</button>` : ''}
+        </div>
+      `;
+
+      drawFlora(document.getElementById('previewCanvas'), specimen.genome);
+    }
+
+    function getAncestors(id, maxDepth, depth = 0) {
+      if (depth >= maxDepth) return [];
+      const specimen = archive[id];
+      if (!specimen) return [];
+      
+      const ancestors = [];
+      
+      if (specimen.parentA && archive[specimen.parentA]) {
+        ancestors.push({ ...archive[specimen.parentA], relation: 'Parent A', depth: depth + 1 });
+        ancestors.push(...getAncestors(specimen.parentA, maxDepth, depth + 1));
+      }
+      if (specimen.parentB && archive[specimen.parentB]) {
+        ancestors.push({ ...archive[specimen.parentB], relation: 'Parent B', depth: depth + 1 });
+        ancestors.push(...getAncestors(specimen.parentB, maxDepth, depth + 1));
+      }
+      
+      return ancestors;
+    }
+
+    function renderLineageNodes(current, ancestors) {
+      let html = `
+        <div class="tree-node current">
+          <canvas class="tree-node-canvas" width="80" height="80" id="node-${current.id}"></canvas>
+          <div class="tree-node-info">
+            <div class="tree-node-gen">Gen ${current.generation}</div>
+            <div class="tree-node-id">${current.id}</div>
+          </div>
+          <span class="tree-node-relation">Current</span>
+        </div>
+      `;
+
+      // Group by depth
+      const byDepth = {};
+      ancestors.forEach(a => {
+        if (!byDepth[a.depth]) byDepth[a.depth] = [];
+        byDepth[a.depth].push(a);
+      });
+
+      Object.keys(byDepth).sort((a, b) => a - b).forEach(depth => {
+        byDepth[depth].forEach(ancestor => {
+          html += `
+            <div class="tree-node" onclick="showSpecimenDetails(archive['${ancestor.id}'])" style="margin-left: ${depth * 16}px;">
+              <canvas class="tree-node-canvas" width="80" height="80" id="node-${ancestor.id}"></canvas>
+              <div class="tree-node-info">
+                <div class="tree-node-gen">Gen ${ancestor.generation}</div>
+                <div class="tree-node-id">${ancestor.id}</div>
+              </div>
+              <span class="tree-node-relation">${ancestor.relation}</span>
+            </div>
+          `;
+        });
+      });
+
+      // Schedule canvas drawing
+      setTimeout(() => {
+        const currentCanvas = document.getElementById(`node-${current.id}`);
+        if (currentCanvas) drawFlora(currentCanvas, current.genome);
+        
+        ancestors.forEach(a => {
+          const canvas = document.getElementById(`node-${a.id}`);
+          if (canvas) drawFlora(canvas, a.genome);
+        });
+      }, 0);
+
+      return html;
+    }
+
+    function openFullTree(id) {
+      const specimen = archive[id];
+      if (!specimen) return;
+
+      const modal = document.getElementById('treeModal');
+      const body = document.getElementById('treeModalBody');
+      
+      body.innerHTML = buildFullTreeHTML(specimen);
+      modal.classList.add('open');
+
+      // Draw all canvases
+      setTimeout(() => {
+        document.querySelectorAll('.tree-card canvas').forEach(canvas => {
+          const specId = canvas.dataset.id;
+          if (archive[specId]) {
+            drawFlora(canvas, archive[specId].genome);
+          }
+        });
+      }, 50);
+    }
+
+    function buildFullTreeHTML(specimen, depth = 0) {
+      if (depth > 5) return ''; // Limit depth
+      
+      const hasParents = specimen.parentA && specimen.parentB && archive[specimen.parentA] && archive[specimen.parentB];
+      
+      let html = `
+        <div class="full-tree">
+          <div class="tree-card ${depth === 0 ? 'highlight' : ''}">
+            <canvas width="160" height="160" data-id="${specimen.id}"></canvas>
+            <div class="tree-card-gen">Gen ${specimen.generation}</div>
+            <div class="tree-card-label">${specimen.id.slice(0, 6)}</div>
+          </div>
+      `;
+
+      if (hasParents) {
+        const parentA = archive[specimen.parentA];
+        const parentB = archive[specimen.parentB];
+        
+        html += `
+          <div class="tree-connector"></div>
+          <div class="tree-row">
+            <div style="text-align: center;">
+              <div class="tree-card">
+                <canvas width="160" height="160" data-id="${parentA.id}"></canvas>
+                <div class="tree-card-gen">Gen ${parentA.generation}</div>
+                <div class="tree-card-label">Parent A</div>
+              </div>
+              ${parentA.parentA ? buildParentBranch(parentA, depth + 1) : ''}
+            </div>
+            <div style="text-align: center;">
+              <div class="tree-card">
+                <canvas width="160" height="160" data-id="${parentB.id}"></canvas>
+                <div class="tree-card-gen">Gen ${parentB.generation}</div>
+                <div class="tree-card-label">Parent B</div>
+              </div>
+              ${parentB.parentA ? buildParentBranch(parentB, depth + 1) : ''}
+            </div>
+          </div>
+        `;
+      }
+
+      html += '</div>';
+      return html;
+    }
+
+    function buildParentBranch(specimen, depth) {
+      if (depth > 4 || !specimen.parentA || !specimen.parentB) return '';
+      
+      const parentA = archive[specimen.parentA];
+      const parentB = archive[specimen.parentB];
+      if (!parentA || !parentB) return '';
+
+      return `
+        <div class="tree-connector"></div>
+        <div class="tree-row" style="transform: scale(0.8); transform-origin: top center;">
+          <div class="tree-card">
+            <canvas width="120" height="120" data-id="${parentA.id}"></canvas>
+            <div class="tree-card-gen">Gen ${parentA.generation}</div>
+          </div>
+          <div class="tree-card">
+            <canvas width="120" height="120" data-id="${parentB.id}"></canvas>
+            <div class="tree-card-gen">Gen ${parentB.generation}</div>
+          </div>
+        </div>
+      `;
+    }
+
+    // ==========================================
+    // UI UTILITIES
+    // ==========================================
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 2500);
+    }
+
+    function setGridSize(size) {
+      gridSize = size;
+      document.querySelectorAll('.grid-size-btn').forEach(btn => {
+        btn.classList.toggle('active', parseInt(btn.dataset.size) === size);
+      });
+      initGarden();
+    }
+
+    // ==========================================
+    // EVENT LISTENERS
+    // ==========================================
+    document.getElementById('cullBtn').addEventListener('click', cullSelected);
+    document.getElementById('breedBtn').addEventListener('click', breedNextGeneration);
+    document.getElementById('closeModal').addEventListener('click', () => {
+      document.getElementById('treeModal').classList.remove('open');
+    });
+    document.getElementById('treeModal').addEventListener('click', (e) => {
+      if (e.target === document.getElementById('treeModal')) {
+        document.getElementById('treeModal').classList.remove('open');
+      }
+    });
+    document.querySelectorAll('.grid-size-btn').forEach(btn => {
+      btn.addEventListener('click', () => setGridSize(parseInt(btn.dataset.size)));
+    });
+
+    // Initialize
+    initGarden();
+  </script>
+</body>
+</html>
