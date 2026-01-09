@@ -215,10 +215,21 @@
 
   <div class="toast" id="toast"></div>
 
-  <script>
+  <script type="module">
     // ==========================================
-    // GENETICS (from previous implementation)
+    // LOAD MODULES AND INITIALIZE
     // ==========================================
+    import { loadGeneticsConfig } from './js/config-loader.js';
+    import { initGarden } from './js/garden.js';
+    
+    // Load config and initialize garden
+    loadGeneticsConfig().then(() => {
+      initGarden();
+    }).catch(error => {
+      console.error('Failed to initialize garden:', error);
+    });
+    
+    // Legacy code removed - now using modules
     const GeneticsConfig = {
       inheritanceProbabilities: { singleParent: 0.25, blend: 0.60, mutate: 0.15 },
       genes: {
@@ -726,8 +737,8 @@
       btn.addEventListener('click', () => setGridSize(parseInt(btn.dataset.size)));
     });
 
-    // Initialize
-    initGarden();
+    // Legacy init - now handled by initGarden() from module
+    // initGarden();
   </script>
 </body>
 </html>

@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Flower Generator - Algorithmic Flora</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg-deep: #0a0a0a;
+      --bg-panel: #111111;
+      --bg-elevated: #1a1a1a;
+      --border-subtle: rgba(255, 255, 255, 0.06);
+      --border-glow: rgba(255, 255, 255, 0.12);
+      --text-primary: #f5f5f0;
+      --text-secondary: rgba(255, 255, 255, 0.5);
+      --text-tertiary: rgba(255, 255, 255, 0.3);
+      --accent-warm: #d4a574;
+      --accent-cool: #7eb8a8;
+      --accent-rose: #c49b9b;
+    }
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg-deep);
+      color: var(--text-primary);
+      min-height: 100vh;
+      overflow: hidden;
+    }
+    .nav-bar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 60px;
+      background: var(--bg-panel);
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      z-index: 1000;
+      padding: 0 20px;
+    }
+    .nav-btn {
+      padding: 10px 24px;
+      background: transparent;
+      border: 1px solid var(--border-subtle);
+      border-radius: 100px;
+      font-size: 13px;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .nav-btn:hover {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: var(--border-glow);
+      color: var(--text-primary);
+    }
+    .nav-btn.active {
+      background: var(--text-primary);
+      color: var(--bg-deep);
+      border-color: var(--text-primary);
+    }
+    .view-container {
+      position: fixed;
+      top: 60px;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      overflow: hidden;
+    }
+    .view {
+      display: none;
+      width: 100%;
+      height: 100%;
+      overflow: auto;
+    }
+    .view.active {
+      display: block;
+    }
+    .view iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+  </style>
+</head>
+<body>
+  <nav class="nav-bar">
+    <button class="nav-btn active" data-view="generator">Generator</button>
+    <button class="nav-btn" data-view="garden">Garden</button>
+  </nav>
+  
+  <div class="view-container">
+    <div class="view active" id="generatorView">
+      <iframe src="flower-generator.html"></iframe>
+    </div>
+    <div class="view" id="gardenView">
+      <iframe src="flora-garden.html"></iframe>
+    </div>
+  </div>
+
+  <script type="module">
+    // Navigation
+    document.querySelectorAll('.nav-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const viewName = btn.dataset.view;
+        
+        // Update nav buttons
+        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        
+        // Update views
+        document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+        document.getElementById(`${viewName}View`).classList.add('active');
+      });
+    });
+  </script>
+</body>
+</html>
+
